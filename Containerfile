@@ -166,8 +166,13 @@ RUN if [ "$BUILD_OCP_DOCS" = "true" ] && [ -d "/rag-content/rag-docs/ocp-product
         mkdir -p /rag-content/ocp_vector_db; \
     fi
 
-# Download the OKP embeddings model
-RUN python ./scripts/download_okp_embeddings.py --output-dir okp_embeddings_model
+# Use the OKP embeddings model from the rag-docs repo if available, otherwise download it
+RUN if [ -d "rag-docs/okp_embeddings_model" ]; then \
+        echo "Using cached OKP embeddings model from rag-docs"; \
+        cp -r rag-docs/okp_embeddings_model okp_embeddings_model; \
+    else \
+        python ./scripts/download_okp_embeddings.py --output-dir okp_embeddings_model; \
+    fi
 
 # Clean up the OKP content
 RUN rm -rf ./okp-content
