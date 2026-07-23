@@ -39,10 +39,10 @@ jobs:
           tool-cache: true
 
       - name: Checkout to the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.8.1
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Build only partial rag-content when running in the check pipeline
         if: github.event_name == 'pull_request'
