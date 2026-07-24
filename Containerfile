@@ -82,13 +82,11 @@ ARG BUILD_OKP_CONTENT=false
 ARG BUILD_OPERATORS_DOCS=false
 ARG OKP_CONTENT="all"
 ARG RHOSO_IGNORE_LIST=""
-ARG BUILD_OCP_DOCS=false
 ARG RHOSO_DOCS_EXTRA_DOCS=""
 
 ENV OS_VERSION=$OS_VERSION
 ENV LD_LIBRARY_PATH=""
 ENV OKP_CONTENT=$OKP_CONTENT
-ENV BUILD_OCP_DOCS=$BUILD_OCP_DOCS
 
 USER 0
 WORKDIR /rag-content
@@ -100,7 +98,6 @@ RUN if [ "$FLAVOR" == "gpu" ]; then \
         FOLDER_ARG="--folder openstack-docs-plaintext"; \
     fi && \
     if [ ! -z "$RHOSO_DOCS_GIT_URL" ]; then \
-        FOLDER_ARG="$FOLDER_ARG --rhoso-folder rag-docs/rhoso-docs-plaintext"; \
         if [ ! -z "$RHOSO_DOCS_EXTRA_DOCS" ]; then \
             FOLDER_ARG="$FOLDER_ARG --extra-folder $RHOSO_DOCS_EXTRA_DOCS"; \
         fi; \
@@ -111,12 +108,11 @@ RUN if [ "$FLAVOR" == "gpu" ]; then \
     if [ "$BUILD_OKP_CONTENT" = "true" ]; then \
         FOLDER_ARG="$FOLDER_ARG --okp-folder ./okp-content --okp-content ${OKP_CONTENT}"; \
     fi && \
-    if [ -z "$FOLDER_ARG" ] && [ "$BUILD_OCP_DOCS" != "true" ]; then \
+    if [ -z "$FOLDER_ARG" ]; then \
         echo "Error: No documentation sources enabled"; \
         exit 1; \
     fi && \
-    if [ -n "$FOLDER_ARG" ]; then \
-        python ./scripts/generate_embeddings_openstack.py \
+    python ./scripts/generate_embeddings_openstack.py \
         --output ./vector_db/ \
         --model-dir embeddings_model \
         --model-name ${EMBEDDING_MODEL} \
@@ -126,45 +122,7 @@ RUN if [ "$FLAVOR" == "gpu" ]; then \
         --ignore-list ${RHOSO_IGNORE_LIST} \
         --vector-store-type $VECTOR_DB_TYPE \
         --openstack-version ${OS_VERSION} \
-        ${FOLDER_ARG}; \
-    else \
-        echo "No OpenStack/RHOSO doc sources, building OCP-only RAG"; \
-        mkdir -p ./vector_db; \
-    fi
-
-# Compute embeddings for the OCP docs using the LCORE-based script
-# This ensures OCP docs are compatible with both faiss and llamastack vector stores
-RUN if [ "$BUILD_OCP_DOCS" = "true" ] && [ -d "/rag-content/rag-docs/ocp-product-docs-plaintext" ]; then \
-        LATEST_VERSION="$(basename $(ls -d1 rag-docs/ocp-product-docs-plaintext/4.* | sort -V | tail -n 1))" && \
-        echo "Latest version is ${LATEST_VERSION}" && \
-        set -e && for OCP_VERSION in $(cd rag-docs/ocp-product-docs-plaintext && ls -d1 4*); do \
-            if [[ "${LATEST_VERSION}" == "${OCP_VERSION}" ]] && [[ "4.16 4.18" != *"${OCP_VERSION}"* ]]; then \
-                echo "Version ${OCP_VERSION} used as the latest version"; \
-                VERSION_POSTFIX="latest"; \
-            else \
-                echo "Version ${OCP_VERSION} is not the latest version"; \
-                VERSION_POSTFIX="${OCP_VERSION}"; \
-            fi && \
-            OCP_ARGS="--ocp-folder ./rag-docs/ocp-product-docs-plaintext/${OCP_VERSION} --ocp-version ${OCP_VERSION}" && \
-            if [ -d "./rag-docs/ocp-product-docs-plaintext/common_alerts" ]; then \
-                OCP_ARGS="$OCP_ARGS --runbooks-folder ./rag-docs/ocp-product-docs-plaintext/common_alerts"; \
-            fi && \
-            python ./scripts/generate_embeddings_openstack.py \
-                ${OCP_ARGS} \
-                --output ocp_vector_db/ocp_${VERSION_POSTFIX} \
-                --model-dir embeddings_model \
-                --model-name ${EMBEDDING_MODEL} \
-                --index ocp-product-docs-$(echo $VERSION_POSTFIX | sed 's/\./_/g') \
-                --workers ${NUM_WORKERS} \
-                --unreachable-action ${DOCS_LINK_UNREACHABLE_ACTION} \
-                --vector-store-type $VECTOR_DB_TYPE; \
-        done && \
-        if [[ -d ocp_vector_db/ocp_latest ]]; then \
-            ln -s -r ocp_vector_db/ocp_latest ocp_vector_db/ocp_${LATEST_VERSION}; \
-        fi; \
-    else \
-        mkdir -p /rag-content/ocp_vector_db; \
-    fi
+        ${FOLDER_ARG}
 
 # Use the OKP embeddings model from the rag-docs repo if available, otherwise download it
 RUN if [ -d "rag-docs/okp_embeddings_model" ]; then \
@@ -182,15 +140,11 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 COPY --from=lightspeed-core-rag-builder /rag-content/vector_db /rag/vector_db/os_product_docs
 COPY --from=lightspeed-core-rag-builder /rag-content/embeddings_model /rag/embeddings_model
 COPY --from=lightspeed-core-rag-builder /rag-content/okp_embeddings_model /rag/okp_embeddings_model
-COPY --from=lightspeed-core-rag-builder /rag-content/ocp_vector_db /rag/ocp_vector_db
 
 ARG INDEX_NAME
 ENV INDEX_NAME=${INDEX_NAME}
 
-RUN if [ -z "$( ls -A '/rag/ocp_vector_db' )" ]; then \
-      rmdir /rag/ocp_vector_db; \
-    fi && \
-    mkdir /licenses
+RUN mkdir /licenses
 COPY LICENSE /licenses/
 
 LABEL description="Red Hat OpenStack Lightspeed RAG content"

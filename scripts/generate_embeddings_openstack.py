@@ -24,12 +24,6 @@ logging.basicConfig(
 OKP_CONTENT_TYPES = ["erratas", "docs", "pages"]
 
 
-def clean_url(unclean_url):
-    unclean_chars = "[()]"
-    clean_url = re.sub(unclean_chars, "", unclean_url)
-    return clean_url
-
-
 class OpenStackDocsMetadataProcessor(MetadataProcessor):
     """Metadata processor for OpenStack documentation."""
 
@@ -62,41 +56,6 @@ class OpenStackDocsMetadataProcessor(MetadataProcessor):
         relative_path = relative_path.replace(".txt", ".html")
 
         return f"{self.base_url}/{relative_path}"
-
-
-class RedHatDocsMetadataProcessor(MetadataProcessor):
-    ROOT_URL = "https://docs.redhat.com/en/documentation/red_hat_openstack_services_on_openshift/{}/html-single"
-
-    def __init__(self, docs_path, version, base_url=ROOT_URL):
-        super(RedHatDocsMetadataProcessor, self).__init__()
-        self._base_path = os.path.abspath(docs_path)
-        if self._base_path.endswith("/"):
-            self._base_path = self._base_path[:-1]
-        self.base_url = base_url
-        self.version = version
-
-    def url_function(self, file_path: str):
-        # Document name mappings for cases where internal document names
-        # differ from published URL paths in Red Hat documentation
-        doc_mappings = {
-            "installing_openstack_services_on_openshift": "deploying_red_hat_openstack_services_on_openshift",
-            "deploying_rhoso_at_scale": "planning_a_large-scale_rhoso_deployment",
-        }
-        if "release-notes" in file_path:
-            return clean_url(
-                self.base_url.format(self.version)
-                + "/release_notes/index#chap-release-info_release-info-top-"
-                + os.path.basename(file_path).rstrip(".txt")
-            )
-        else:
-            doc_name = str(Path(file_path).parent.name)
-            # Apply document name mapping if needed
-            if doc_name in doc_mappings:
-                doc_name = doc_mappings[doc_name]
-
-            return clean_url(
-                self.base_url.format(self.version) + "/" + doc_name + "/index.html"
-            )
 
 
 # Extra docs metadata processor
@@ -171,54 +130,6 @@ class OpenStackOperatorMetadataProcessor(MetadataProcessor):
         relative_path = relative_path.replace(".md", ".html")
 
         return f"{self.base_url}/{relative_path}"
-
-
-#
-# OCP (OpenShift Container Platform) metadata processors
-#
-
-
-class OCPDocsMetadataProcessor(MetadataProcessor):
-    """Metadata processor for OCP (OpenShift Container Platform) documentation."""
-
-    base_url = "https://docs.openshift.com/container-platform"
-
-    def __init__(self, folder_path: str, ocp_version: str):
-        super(OCPDocsMetadataProcessor, self).__init__()
-        self.folder_path = Path(folder_path).resolve()
-        self.ocp_version = ocp_version
-
-    def url_function(self, path: str) -> str:
-        """Generate the URL for an OCP document based on its file path."""
-        path_obj = Path(path).resolve()
-        try:
-            relative_path = path_obj.relative_to(self.folder_path)
-        except ValueError:
-            relative_path = Path(path_obj.name)
-
-        relative_path = relative_path.with_suffix(".html")
-
-        return f"{self.base_url}/{self.ocp_version}/{relative_path.as_posix()}"
-
-
-class RunbookMetadataProcessor(MetadataProcessor):
-    """Metadata processor for OpenShift runbook alerts."""
-
-    base_url = "https://github.com/openshift/runbooks/blob/master/alerts"
-
-    def __init__(self, folder_path: str):
-        super(RunbookMetadataProcessor, self).__init__()
-        self.folder_path = Path(folder_path).resolve()
-
-    def url_function(self, path: str) -> str:
-        """Generate the URL for a runbook based on its file path."""
-        path_obj = Path(path).resolve()
-        try:
-            relative_path = path_obj.relative_to(self.folder_path)
-        except ValueError:
-            relative_path = Path(path_obj.name)
-
-        return f"{self.base_url}/{relative_path.as_posix()}"
 
 
 #
@@ -301,13 +212,6 @@ def copy_openstack_documentation(
 if __name__ == "__main__":
     parser = utils.get_common_arg_parser()
     parser.add_argument(
-        "-rf",
-        "--rhoso-folder",
-        type=Path,
-        required=False,
-        help="Directory containing the plain text RHOSO documentation",
-    )
-    parser.add_argument(
         "-opf",
         "--operators-folder",
         type=Path,
@@ -357,28 +261,6 @@ if __name__ == "__main__":
         help="Comma-separated list of document titles to ignore URL validation for",
     )
     parser.add_argument(
-        "-ocpf",
-        "--ocp-folder",
-        type=Path,
-        required=False,
-        help="Directory containing the plain text OCP documentation",
-    )
-    parser.add_argument(
-        "-ocpv",
-        "--ocp-version",
-        type=str,
-        required=False,
-        default="4.18",
-        help="Version of the OCP documentation to process",
-    )
-    parser.add_argument(
-        "-rbf",
-        "--runbooks-folder",
-        type=Path,
-        required=False,
-        help="Directory containing the runbook alert files",
-    )
-    parser.add_argument(
         "-ef",
         "--extra-folder",
         type=Path,
@@ -401,16 +283,14 @@ if __name__ == "__main__":
     if not any(
         [
             args.folder,
-            args.rhoso_folder,
             args.okp_folder,
             args.operators_folder,
-            args.ocp_folder,
             args.extra_folder,
         ]
     ):
         print(
-            'Error: At least one of "--folder", "--rhoso-folder", "--okp-folder", '
-            '"--operators-folder", "--ocp-folder", or "--extra-folder" options '
+            'Error: At least one of "--folder", "--okp-folder", '
+            '"--operators-folder", or "--extra-folder" options '
             "must be provided",
             file=sys.stderr,
         )
@@ -434,20 +314,6 @@ if __name__ == "__main__":
         document_processor.process(
             str(args.folder),
             metadata=OpenStackDocsMetadataProcessor(args.folder),
-            required_exts=[
-                ".txt",
-            ],
-            unreachable_action=args.unreachable_action,
-            ignore_list=ignore_list,
-        )
-
-    # Process the RHOSO documents, if provided
-    if args.rhoso_folder:
-        document_processor.process(
-            str(args.rhoso_folder),
-            metadata=RedHatDocsMetadataProcessor(
-                args.rhoso_folder, args.openstack_version
-            ),
             required_exts=[
                 ".txt",
             ],
@@ -486,32 +352,6 @@ if __name__ == "__main__":
         document_processor.process(
             str(args.operators_folder),
             metadata=OpenStackOperatorMetadataProcessor(args.operators_folder),
-            required_exts=[
-                ".md",
-            ],
-            file_extractor={".md": MarkdownReader()},
-            unreachable_action=args.unreachable_action,
-            ignore_list=ignore_list,
-        )
-
-    # Process the OCP documents, if provided
-    if args.ocp_folder:
-        document_processor.process(
-            str(args.ocp_folder),
-            metadata=OCPDocsMetadataProcessor(args.ocp_folder, args.ocp_version),
-            required_exts=[
-                ".txt",
-            ],
-            file_extractor={".txt": MarkdownReader()},
-            unreachable_action=args.unreachable_action,
-            ignore_list=ignore_list,
-        )
-
-    # Process the runbooks, if provided
-    if args.runbooks_folder:
-        document_processor.process(
-            str(args.runbooks_folder),
-            metadata=RunbookMetadataProcessor(args.runbooks_folder),
             required_exts=[
                 ".md",
             ],
