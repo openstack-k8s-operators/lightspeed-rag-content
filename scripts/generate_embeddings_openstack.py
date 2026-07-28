@@ -2,17 +2,13 @@
 
 """Utility script to generate embeddings."""
 
-import shutil
-import tempfile
 import logging
-import os
 import re
 import json
 from pathlib import Path
 import sys
 
 from lightspeed_rag_content import utils
-from lightspeed_rag_content import okp
 from lightspeed_rag_content.metadata_processor import MetadataProcessor
 from lightspeed_rag_content.document_processor import DocumentProcessor
 from llama_index.readers.file.markdown.base import MarkdownReader
@@ -20,8 +16,6 @@ from llama_index.readers.file.markdown.base import MarkdownReader
 logging.basicConfig(
     level=logging.WARNING, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-
-OKP_CONTENT_TYPES = ["erratas", "docs", "pages"]
 
 
 class OpenStackDocsMetadataProcessor(MetadataProcessor):
@@ -132,83 +126,6 @@ class OpenStackOperatorMetadataProcessor(MetadataProcessor):
         return f"{self.base_url}/{relative_path}"
 
 
-#
-# Functions related to OpenStack OKP
-#
-
-
-def copy_openstack_errata(input_dir: Path, output_dir: Path) -> Path:
-    """Returns a directory containing only OpenStack related errata files."""
-    errata_dir = input_dir / "errata"
-    if not errata_dir.exists():
-        raise ValueError(
-            f"The specified errata directory '{errata_dir}' does not exist."
-        )
-
-    print("Copying OpenStack related errata files...")
-    os.makedirs(output_dir / "errata", exist_ok=True)
-    for f in okp.yield_files_related_to_projects(errata_dir, projects=["openstack"]):
-        # Copy the file to the output directory
-        shutil.copy2(f, output_dir / "errata")
-    print("OpenStack related errata files copied successfully.")
-
-
-def _yield_openstack_pages_md_files(base_dir):
-    """Yield OpenStack related Markdown files from the given directory."""
-    for root, _, files in os.walk(base_dir):
-        for file in files:
-            if "openstack" in file.lower() and file.lower().endswith(".md"):
-                yield os.path.join(root, file)
-
-
-def copy_openstack_pages(input_dir: Path, output_dir: Path) -> Path:
-    """Returns a directory containing only OpenStack related pages."""
-    pages_dir = input_dir / "pages"
-    if not pages_dir.exists():
-        raise ValueError(f"The specified pages directory '{pages_dir}' does not exist.")
-
-    print("Copying OpenStack related pages...")
-    os.makedirs(output_dir / "pages", exist_ok=True)
-    for f in _yield_openstack_pages_md_files(pages_dir):
-        # Copy the file to the output directory
-        shutil.copy2(f, output_dir / "pages")
-    print("OpenStack related pages copied successfully.")
-
-
-def _yield_openstack_documentation_md_files(base_dir):
-    """Yield OpenStack related documentation Markdown files from the given directory."""
-    for root, dirs, files in os.walk(base_dir):
-        # Only search if the current folder's name is exactly "single-page"
-        if os.path.basename(root) == "single-page":
-            for file in files:
-                if file.lower().endswith(".md"):
-                    yield os.path.join(root, file)
-
-
-def copy_openstack_documentation(
-    input_dir: Path, output_dir: Path, version: str
-) -> Path:
-    """Returns a directory containing only OpenStack related documentation files."""
-    docs_dir = (
-        input_dir / f"documentation/red_hat_openstack_services_on_openshift/{version}"
-    )
-    if not docs_dir.exists():
-        raise ValueError(
-            f"The specified documentation directory '{docs_dir}' does not exist."
-        )
-
-    print("Copying OpenStack documentation files...")
-    os.makedirs(output_dir / "docs", exist_ok=True)
-    for f in _yield_openstack_documentation_md_files(docs_dir):
-        # Copy the file to the output directory
-        shutil.copy2(f, output_dir / "docs")
-    print("OpenStack documentation files copied successfully.")
-
-
-#
-# End functions related to OKP
-#
-
 if __name__ == "__main__":
     parser = utils.get_common_arg_parser()
     parser.add_argument(
@@ -225,30 +142,6 @@ if __name__ == "__main__":
         default="warn",
         required=False,
         help="What to do when encountering a doc whose URL can't be reached",
-    )
-    parser.add_argument(
-        "-osv",
-        "--openstack-version",
-        type=str,
-        required=False,
-        default="18.0",
-        help="Version of the OpenStack documentation to process",
-    )
-    parser.add_argument(
-        "-of",
-        "--okp-folder",
-        type=Path,
-        required=False,
-        help="Directory containing the OKP files",
-    )
-    parser.add_argument(
-        "-oc",
-        "--okp-content",
-        nargs="+",
-        choices=OKP_CONTENT_TYPES + ["all"],
-        default=["all"],
-        required=False,
-        help="Choose one or more OKP content types, or 'all' for all of them",
     )
     parser.add_argument(
         "-il",
@@ -283,13 +176,12 @@ if __name__ == "__main__":
     if not any(
         [
             args.folder,
-            args.okp_folder,
             args.operators_folder,
             args.extra_folder,
         ]
     ):
         print(
-            'Error: At least one of "--folder", "--okp-folder", '
+            'Error: At least one of "--folder", '
             '"--operators-folder", or "--extra-folder" options '
             "must be provided",
             file=sys.stderr,
@@ -360,50 +252,5 @@ if __name__ == "__main__":
             ignore_list=ignore_list,
         )
 
-    # Process the OKP files, if provided
-    okp_out_dir = None
-    if args.okp_folder:
-        if not args.okp_folder.exists():
-            raise ValueError(
-                f"The specified OKP folder '{args.okp_folder}' does not exist."
-            )
-
-        print(f"Processing OKP files from: {args.okp_folder}")
-
-        if "all" in args.okp_content:
-            args.okp_content = OKP_CONTENT_TYPES
-
-        # Create a temporary directory for OKP files
-        okp_out_dir = Path(tempfile.mkdtemp(prefix="okp_openstack_"))
-
-        for content_type in args.okp_content:
-            if content_type == "erratas":
-                copy_openstack_errata(args.okp_folder, okp_out_dir)
-            elif content_type == "docs":
-                copy_openstack_documentation(
-                    args.okp_folder, okp_out_dir, version=args.openstack_version
-                )
-            elif content_type == "pages":
-                copy_openstack_pages(args.okp_folder, okp_out_dir)
-
-        print(
-            f"Processing OpenStack related {', '.join(args.okp_content)} files in {okp_out_dir}"
-        )
-        document_processor.process(
-            str(okp_out_dir),
-            metadata=okp.OKPMetadataProcessor(),
-            required_exts=[
-                ".md",
-            ],
-            file_extractor={".md": MarkdownReader()},
-            unreachable_action=args.unreachable_action,
-            ignore_list=ignore_list,
-        )
-
     # Save to the output directory
     document_processor.save(args.index, str(args.output))
-
-    # Clean up the OKP output directory if it exists
-    if okp_out_dir and okp_out_dir.exists():
-        print(f"Cleaning up temporary OKP output directory: {okp_out_dir}")
-        shutil.rmtree(okp_out_dir)

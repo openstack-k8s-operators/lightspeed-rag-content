@@ -47,9 +47,6 @@ WORKDIR /rag-content
 
 COPY ./scripts ./scripts
 
-# Copy the OKP content to inside the container
-COPY ./okp-content ./okp-content
-
 # Clone the RHOSO docs repository if provided
 RUN if [ ! -z "$RHOSO_DOCS_GIT_URL" ]; then \
         if [ "$FLAVOR" == "gpu" ]; then \
@@ -78,15 +75,12 @@ ARG INDEX_NAME=os-docs-${OS_VERSION}
 ARG NUM_WORKERS=1
 ARG RHOSO_DOCS_GIT_URL=""
 ARG VECTOR_DB_TYPE="faiss"
-ARG BUILD_OKP_CONTENT=false
 ARG BUILD_OPERATORS_DOCS=false
-ARG OKP_CONTENT="all"
 ARG RHOSO_IGNORE_LIST=""
 ARG RHOSO_DOCS_EXTRA_DOCS=""
 
 ENV OS_VERSION=$OS_VERSION
 ENV LD_LIBRARY_PATH=""
-ENV OKP_CONTENT=$OKP_CONTENT
 
 USER 0
 WORKDIR /rag-content
@@ -105,9 +99,6 @@ RUN if [ "$FLAVOR" == "gpu" ]; then \
             FOLDER_ARG="$FOLDER_ARG --operators-folder rag-docs/openstack-operators-docs-markdown"; \
         fi; \
     fi && \
-    if [ "$BUILD_OKP_CONTENT" = "true" ]; then \
-        FOLDER_ARG="$FOLDER_ARG --okp-folder ./okp-content --okp-content ${OKP_CONTENT}"; \
-    fi && \
     if [ -z "$FOLDER_ARG" ]; then \
         echo "Error: No documentation sources enabled"; \
         exit 1; \
@@ -121,7 +112,6 @@ RUN if [ "$FLAVOR" == "gpu" ]; then \
         --unreachable-action ${DOCS_LINK_UNREACHABLE_ACTION} \
         --ignore-list ${RHOSO_IGNORE_LIST} \
         --vector-store-type $VECTOR_DB_TYPE \
-        --openstack-version ${OS_VERSION} \
         ${FOLDER_ARG}
 
 # Use the OKP embeddings model from the rag-docs repo if available, otherwise download it
@@ -131,9 +121,6 @@ RUN if [ -d "rag-docs/okp_embeddings_model" ]; then \
     else \
         python ./scripts/download_okp_embeddings.py --output-dir okp_embeddings_model; \
     fi
-
-# Clean up the OKP content
-RUN rm -rf ./okp-content
 
 # -- Stage 3: Store the vector DB into ubi-minimal image ----------------------
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest

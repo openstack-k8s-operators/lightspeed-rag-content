@@ -16,8 +16,6 @@ DOCS_LINK_UNREACHABLE_ACTION   ?= warn
 RHOSO_DOCS_EXTRA_DOCS          ?= rag-docs/extra-docs
 BUILD_EXTRA_ARGS               ?=
 VECTOR_DB_TYPE                 ?= faiss
-BUILD_OKP_CONTENT              ?= false
-OKP_CONTENT                    ?= "all"
 RHOSO_IGNORE_LIST              ?= ""
 BUILD_OPERATORS_DOCS           ?= false
 
@@ -50,8 +48,6 @@ build-image-os: ## Build a openstack rag-content container image
 	--build-arg DOCS_LINK_UNREACHABLE_ACTION=$(DOCS_LINK_UNREACHABLE_ACTION) \
 	--build-arg INDEX_NAME=$(INDEX_NAME) \
 	--build-arg VECTOR_DB_TYPE=$(VECTOR_DB_TYPE) \
-	--build-arg BUILD_OKP_CONTENT=$(BUILD_OKP_CONTENT) \
-	--build-arg OKP_CONTENT=$(OKP_CONTENT) \
 	--build-arg RHOSO_IGNORE_LIST='$(RHOSO_IGNORE_LIST)' \
 	--build-arg RHOSO_DOCS_EXTRA_DOCS=$(RHOSO_DOCS_EXTRA_DOCS) \
 	--build-arg BUILD_OPERATORS_DOCS=$(BUILD_OPERATORS_DOCS) \
