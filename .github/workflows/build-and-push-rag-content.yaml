@@ -74,7 +74,7 @@ jobs:
 
       - name: Build image
         id: build_image
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ github.event.repository.name }}
           tags: ${{ env.TAGS }}
@@ -99,7 +99,7 @@ jobs:
 
       - name: Log in to quay.io
         if: github.event_name == 'schedule' || github.event_name == 'push'
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         with:
           username: ${{ secrets.QUAY_IO_LOGIN }}
           password: ${{ secrets.QUAY_IO_PASSWORD }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: Push the image to quay.io
         if: github.event_name == 'schedule' || github.event_name == 'push'
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push
         with:
           registry: quay.io/openstack-lightspeed
