@@ -30,6 +30,8 @@ env:
 jobs:
   build-and-push-rag-content:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@v1.3.1
