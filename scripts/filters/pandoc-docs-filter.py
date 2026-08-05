@@ -8,8 +8,8 @@ Pandoc filter to improve DocBook to Markdown conversion for documentation:
 3. Remove unnecessary blank lines between list items
 """
 
-import sys
 import json
+import sys
 
 
 def extract_string(inlines):
@@ -141,9 +141,7 @@ def process_blocks(blocks):
                             if (
                                 isinstance(item_block, dict)
                                 and item_block.get("t") == "Para"
-                            ):
-                                cleaned_item.append(item_block)
-                            elif (
+                            ) or (
                                 isinstance(item_block, dict)
                                 and item_block.get("t") != "Para"
                             ):

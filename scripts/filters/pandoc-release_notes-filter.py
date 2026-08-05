@@ -7,8 +7,8 @@ Pandoc filter to improve DocBook to Markdown conversion:
 2. Convert <formalpara><title> (Div.formalpara-title) to headers at appropriate levels
 """
 
-import sys
 import json
+import sys
 
 
 def extract_string(inlines):
