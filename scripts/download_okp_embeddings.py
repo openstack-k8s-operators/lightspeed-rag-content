@@ -38,7 +38,7 @@ def main():
     print(f"Downloading model {MODEL_ID} to {args.output_dir}")
     try:
         snapshot_download(repo_id=MODEL_ID, local_dir=args.output_dir)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Failed to download model {MODEL_ID}: {e}", file=sys.stderr)
         sys.exit(1)
     print("Download complete.")
