@@ -13,13 +13,9 @@ RHOSO_CA_CERT_URL              ?= ""
 OSLS_CONTAINER                 ?= quay.io/openstack-lightspeed/rag-content:latest
 BUILD_UPSTREAM_DOCS            ?= true
 DOCS_LINK_UNREACHABLE_ACTION   ?= warn
-BUILD_OCP_DOCS                 ?= false
 RHOSO_DOCS_EXTRA_DOCS          ?= rag-docs/extra-docs
-# Use defaults from the get_ocp_docs.sh script
 BUILD_EXTRA_ARGS               ?=
 VECTOR_DB_TYPE                 ?= faiss
-BUILD_OKP_CONTENT              ?= false
-OKP_CONTENT                    ?= "all"
 RHOSO_IGNORE_LIST              ?= ""
 BUILD_OPERATORS_DOCS           ?= false
 
@@ -52,10 +48,7 @@ build-image-os: ## Build a openstack rag-content container image
 	--build-arg DOCS_LINK_UNREACHABLE_ACTION=$(DOCS_LINK_UNREACHABLE_ACTION) \
 	--build-arg INDEX_NAME=$(INDEX_NAME) \
 	--build-arg VECTOR_DB_TYPE=$(VECTOR_DB_TYPE) \
-	--build-arg BUILD_OKP_CONTENT=$(BUILD_OKP_CONTENT) \
-	--build-arg OKP_CONTENT=$(OKP_CONTENT) \
 	--build-arg RHOSO_IGNORE_LIST='$(RHOSO_IGNORE_LIST)' \
-	--build-arg BUILD_OCP_DOCS=$(BUILD_OCP_DOCS) \
 	--build-arg RHOSO_DOCS_EXTRA_DOCS=$(RHOSO_DOCS_EXTRA_DOCS) \
 	--build-arg BUILD_OPERATORS_DOCS=$(BUILD_OPERATORS_DOCS) \
 	$(BUILD_GPU_ARGS) .
