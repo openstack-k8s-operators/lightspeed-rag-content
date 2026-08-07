@@ -2,15 +2,15 @@
 
 """Utility script to generate embeddings."""
 
+import json
 import logging
 import re
-import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from lightspeed_rag_content import utils
-from lightspeed_rag_content.metadata_processor import MetadataProcessor
 from lightspeed_rag_content.document_processor import DocumentProcessor
+from lightspeed_rag_content.metadata_processor import MetadataProcessor
 from llama_index.readers.file.markdown.base import MarkdownReader
 
 logging.basicConfig(
@@ -22,7 +22,7 @@ class OpenStackDocsMetadataProcessor(MetadataProcessor):
     """Metadata processor for OpenStack documentation."""
 
     def __init__(self, folder_path: str):
-        super(OpenStackDocsMetadataProcessor, self).__init__()
+        super().__init__()
         self.folder_path = Path(folder_path)
         self.base_url = "https://docs.openstack.org"
 
@@ -57,7 +57,7 @@ class ExtraDocsMetadataProcessor(MetadataProcessor):
     """Metadata processor for extra SME-authored documentation."""
 
     def __init__(self, folder_path: str | Path):
-        super(ExtraDocsMetadataProcessor, self).__init__()
+        super().__init__()
         self.folder_path = Path(folder_path).resolve()
 
     def url_function(self, file_path: str) -> str:
@@ -101,7 +101,7 @@ class OpenStackOperatorMetadataProcessor(MetadataProcessor):
     """Metadata processor for OpenStack OpenShift Operators Documentation"""
 
     def __init__(self, folder_path: str):
-        super(OpenStackOperatorMetadataProcessor, self).__init__()
+        super().__init__()
         self.folder_path = Path(folder_path)
         self.base_url = "https://openstack-k8s-operators.github.io/openstack-operator"
 
