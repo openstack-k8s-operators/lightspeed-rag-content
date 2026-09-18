@@ -74,6 +74,10 @@ jobs:
         run: |
           echo "TAGS=${{ github.sha }} ${{ env.INDEX_NAME }}" >> $GITHUB_ENV
 
+      - name: Fetch external artifacts
+        run: |
+          .s2i/get_artifacts.sh .s2i/artifacts.txt
+
       - name: Build image
         id: build_image
         uses: redhat-actions/buildah-build@v3

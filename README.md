@@ -15,7 +15,11 @@ There are several ways how to access the OpenStack vector database:
 
 ## Generate OpenStack Vector Database
 
-1. Install requirements: `python3.12.*`.
+1. Install requirements: `python3.12.*` and system tools.
+
+Required system tools:
+- See `.s2i/builddeps.txt` for the canonical build dependency list.
+- `pandoc` + `rubygem-asciidoctor` are only needed when building operators docs.
 
 2. Create virtualenv.
 
@@ -26,10 +30,14 @@ python3.12 -m venv .venv && . .venv/bin/activate
 3. Install dependencies.
 
 ```
-pip install -r requirements.txt
+pip install .
 ```
 
 4. Generate upstream documentation in text format.
+
+> [!NOTE]
+> The operators-docs conversion script (`./scripts/get_openstack_operators_docs.sh`)
+> requires `pandoc` and `asciidoctor` (RHEL package: `rubygem-asciidoctor`) installed on the host.
 
 ```
 ./scripts/get_openstack_plaintext_docs.sh
@@ -63,7 +71,7 @@ make get-embeddings-model
 - For llama-index
 
 ```
-python ./scripts/generate_embeddings_openstack.py \
+python -m openstack_lightspeed_rag_content.generate_embeddings_openstack \
         -o ./vector_db/ \
         -f openstack-docs-plaintext/ \
         -md embeddings_model \
@@ -75,7 +83,7 @@ python ./scripts/generate_embeddings_openstack.py \
 - For llama-stack
 
 ```
-python ./scripts/generate_embeddings_openstack.py \
+python -m openstack_lightspeed_rag_content.generate_embeddings_openstack \
         -o ./vector_db/ \
         -f openstack-docs-plaintext/ \
         -md embeddings_model \
@@ -99,7 +107,13 @@ python /tmp/query_rag.py -p vector_db -x os-docs -m embeddings_model -k 5 -q "ho
 
 1. Install requirements: `make`, `podman`.
 
-2. Generate the container image. If you have GPU available, use `FLAVOR=gpu`.
+2. Pre-fetch external artifacts required by the build:
+
+```
+.s2i/get_artifacts.sh .s2i/artifacts.txt
+```
+
+3. Generate the container image. If you have GPU available, use `FLAVOR=gpu`.
 
 ```
 make build-image-os FLAVOR=cpu

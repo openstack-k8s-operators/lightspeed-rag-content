@@ -1,0 +1,6 @@
+# Extra artifacts fetched by .s2i/get_artifacts.sh
+# Format for Hugging Face directory snapshots:
+# <name> <manifest_sha256> <source>
+# - <manifest_sha256> is the SHA256 of .s2i/artifacts/<name>.SHA256SUM
+# - <source> encodes model id and pinned revision
+okp_embeddings_model f73c51aa14b9a78ab8b3beae1530e2ec15744e559dcf66a8c127319ab21614f5 hf://ibm-granite/granite-embedding-30m-english@9b5b096411652ec1189c68fcfb90d0a82c5b45af

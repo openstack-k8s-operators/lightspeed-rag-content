@@ -179,3 +179,6 @@ cython_debug/
 # OKP guardrails
 okp-content/*
 mimir-*
+
+# S2I Artifacts
+.s2i/artifacts/*

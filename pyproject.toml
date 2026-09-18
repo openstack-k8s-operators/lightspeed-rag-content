@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openstack-lightspeed-rag-content"
+version = "0.1.0"
+description = "OpenStack-specific scripts and CLI for Lightspeed RAG content generation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [
+  { name = "OpenStack Lightspeed contributors" }
+]
+dependencies = [
+  "lightspeed-rag-content @ git+https://github.com/lightspeed-core/rag-content@main",
+  "html2text==2025.4.15",
+
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

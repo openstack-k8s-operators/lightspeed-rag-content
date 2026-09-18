@@ -1,0 +1,89 @@
+contentOrigin:
+  repos:
+    - repoid: delorean-master-testing
+      name: dlrn-master-testing
+      baseurl: https://trunk.rdoproject.org/centos10-master/deps/latest/
+      enabled: true
+      gpgcheck: false
+      module_hotfixes: true
+      exclude: libunwind,abseil-cpp,re2
+
+    - repoid: delorean-master-build-deps
+      name: dlrn-master-build-deps
+      baseurl: https://trunk.rdoproject.org/centos10-master/build-deps/latest/
+      enabled: true
+      gpgcheck: false
+      module_hotfixes: true
+
+    - repoid: centos10-storage
+      name: centos10-storage
+      baseurl: http://mirror.stream.centos.org/SIGs/10-stream/storage/$basearch/ceph-tentacle/
+      enabled: true
+      gpgcheck: false
+      module_hotfixes: true
+
+    - repoid: centos10-opstools
+      name: centos10-opstools
+      baseurl: http://mirror.stream.centos.org/SIGs/10-stream/opstools/$basearch/collectd-5/
+      enabled: false
+      gpgcheck: false
+      module_hotfixes: true
+
+    - repoid: centos10-nfv-ovs
+      name: NFV SIG OpenvSwitch
+      baseurl: https://buildlogs.centos.org/centos/10-stream/nfv/x86_64/openvswitch-2/
+      enabled: true
+      gpgcheck: false
+      module_hotfixes: true
+
+    - repoid: epel-low-priority
+      name: Extra Packages for Enterprise Linux $releasever - $basearch
+      metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch&infra=$infra&content=$contentdir
+      enabled: true
+      gpgcheck: false
+      countme: 1
+      priority: 100
+      includepkgs: liboath,gperftools-libs,thrift,libpmemobj,liborc2,libpmem,parquet-libs,libarrow*,blake3,libunwind,abseil-cpp,re2
+
+    - repoid: centos10-baseos
+      name: CentOS Stream 10 - BaseOS
+      baseurl: http://mirror.stream.centos.org/10-stream/BaseOS/$basearch/os/
+      enabled: true
+      gpgcheck: false
+
+    - repoid: centos10-appstream
+      name: CentOS Stream 10 - AppStream
+      baseurl: http://mirror.stream.centos.org/10-stream/AppStream/$basearch/os/
+      enabled: true
+      gpgcheck: false
+
+    - repoid: centos10-crb
+      name: CentOS Stream 10 - CRB
+      baseurl: http://mirror.stream.centos.org/10-stream/CRB/$basearch/os/
+      enabled: true
+      gpgcheck: false
+
+    - repoid: centos10-messaging-sig-rabbitmq4
+      name: CentOS Stream 10 - Messaging SIG - RabbitMQ 4
+      baseurl: http://mirror.stream.centos.org/SIGs/10-stream/messaging/$basearch/rabbitmq-4/
+      enabled: true
+      gpgcheck: false
+
+context:
+  bare: true
+
+arches:
+  - x86_64
+  - aarch64
+
+packages:
+  - asciidoctor
+  - glibc-langpack-en
+  - glibc-locale-source
+  - graphviz
+  - pandoc
+  - pcre-devel
+  - python3
+  - python3-pip
+  - python3-devel
+  - python3-html2text

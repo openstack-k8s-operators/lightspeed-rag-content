@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """Utility script to generate embeddings."""
 
 import json

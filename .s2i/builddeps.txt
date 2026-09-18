@@ -1,0 +1,15 @@
+# Core build tooling
+git
+python3
+python3-pip
+glibc-langpack-en
+glibc-locale-source
+
+# Needed by upstream OpenStack docs generation
+graphviz
+python-devel
+pcre-devel
+
+# Needed by operators docs generation
+pandoc
+asciidoctor
