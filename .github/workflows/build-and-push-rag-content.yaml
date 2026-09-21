@@ -19,117 +19,99 @@ on:
     - cron: '15 02 * * *'
 
 env:
-  IMAGE_NAME: quay.io/openstack-lightspeed/${{ github.event.repository.name }}
   OS_VERSION: 2026.1
-  OS_API_DOCS: false
-  # Default tag value for manual triggers of the job or other events to prevent
-  # overwriting nightly-*, commit, or os-docs-* tags. Ideally this value should
-  # never be used.
-  TAGS: backup
 
 jobs:
+  prepare-build-config:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.config.outputs.tags }}
+      build_args: ${{ steps.config.outputs.build_args }}
+    steps:
+      - name: Compute tags and build args
+        id: config
+        shell: bash
+        run: |
+          OS_PROJECTS=""
+          OS_API_DOCS="false"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Build only partial rag-content in the check pipeline
+            OS_PROJECTS="nova"
+            OS_API_DOCS="true"
+          fi
+
+          INDEX_NAME="os-docs-${{ env.OS_VERSION }}-ogx"
+
+          # For periodic nightly builds, use nightly-YYYYMMDD and os-docs-<version>
+          # tags to avoid overwriting commit-based tags.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            TAGS="nightly-$(date -u +'%Y%m%d') ${INDEX_NAME}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            TAGS="${{ github.sha }} ${INDEX_NAME}"
+          else
+            # Safe default for manual/PR builds.
+            TAGS="backup"
+          fi
+
+          {
+            echo "tags=${TAGS}"
+            echo "build_args<<EOF"
+            echo "FLAVOR=cpu"
+            echo "NUM_WORKERS=4"
+            echo "OS_PROJECTS=${OS_PROJECTS}"
+            echo "OS_VERSION=${{ env.OS_VERSION }}"
+            echo "INDEX_NAME=${INDEX_NAME}"
+            echo "DOCS_LINK_UNREACHABLE_ACTION=fail"
+            echo "OS_API_DOCS=${OS_API_DOCS}"
+            echo "VECTOR_DB_TYPE=llamastack-faiss"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
   build-and-push-rag-content:
+    needs: prepare-build-config
+    uses: openstack-k8s-operators/lightspeed-mcps/.github/workflows/build-and-push-mcps.yaml@main
+    with:
+      image_namespace: openstack-lightspeed
+      build_context: .
+      containerfile: ./Containerfile
+      prefetch_artifacts: true
+      artifacts_file: ./.s2i/artifacts.txt
+      artifacts_script: ./.s2i/get_artifacts.sh
+      tags: ${{ needs.prepare-build-config.outputs.tags }}
+      build_args: ${{ needs.prepare-build-config.outputs.build_args }}
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_IO_LOGIN }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_IO_PASSWORD }}
+
+  sign-images:
+    needs:
+      - prepare-build-config
+      - build-and-push-rag-content
+    if: github.event_name == 'schedule' || github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - name: Free disk space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          # This might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB.
-          tool-cache: true
-
-      - name: Checkout to the repository
-        uses: actions/checkout@v7
-
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.1.2
 
-      - name: Build only partial rag-content when running in the check pipeline
-        if: github.event_name == 'pull_request'
-        run: |
-          echo OS_PROJECTS="nova" >> $GITHUB_ENV
-          echo OS_API_DOCS="true" >> $GITHUB_ENV
-
-      # The INDEX_NAME variable specifies both the container image tag for the
-      # vector DB and the index ID for the data stored within the image. By making
-      # the image tag match the internal index ID, it becomes easy to identify
-      # which index is contained within each image.
-      - name: Set INDEX_NAME env variable
-        run: |
-          echo "INDEX_NAME=os-docs-${{ env.OS_VERSION }}-ogx" >> $GITHUB_ENV
-
-      # For periodic nightly builds, use nightly-YYYYMMDD and os-docs-2025.2
-      # tags to avoid overwriting commit-based tags. This prevents breaking
-      # existing sha256 references used by openstack-k8s-operators/openstack-operator
-      # builds. Please modify with caution!
-      - name: Set TAGS for periodic builds
-        if: github.event_name == 'schedule'
-        run: |
-          echo "TAGS=nightly-$(date -u +'%Y%m%d') ${{ env.INDEX_NAME }}" >> $GITHUB_ENV
-
-      - name: Set TAGS for push builds
-        if: github.event_name == 'push'
-        run: |
-          echo "TAGS=${{ github.sha }} ${{ env.INDEX_NAME }}" >> $GITHUB_ENV
-
-      - name: Fetch external artifacts
-        run: |
-          .s2i/get_artifacts.sh .s2i/artifacts.txt
-
-      - name: Build image
-        id: build_image
-        uses: redhat-actions/buildah-build@v3
-        with:
-          image: ${{ github.event.repository.name }}
-          tags: ${{ env.TAGS }}
-          oci: true
-          # We are using FLAVOR=cpu because Github runners do not offer GPUs and
-          # NUM_WORKERS is set to 4 because that's the default number of cores
-          # available on ubuntu-latest runner.
-          build-args: |
-            FLAVOR=cpu
-            NUM_WORKERS=4
-            OS_PROJECTS=${{ env.OS_PROJECTS }}
-            OS_VERSION=${{ env.OS_VERSION }}
-            INDEX_NAME=${{ env.INDEX_NAME }}
-            DOCS_LINK_UNREACHABLE_ACTION=fail
-            OS_API_DOCS=${{ env.OS_API_DOCS }}
-            VECTOR_DB_TYPE=llamastack-faiss
-          context: .
-          containerfiles: |
-            ./Containerfile
-
       - name: Log in to quay.io
-        if: github.event_name == 'schedule' || github.event_name == 'push'
         uses: redhat-actions/podman-login@v2
         with:
           username: ${{ secrets.QUAY_IO_LOGIN }}
           password: ${{ secrets.QUAY_IO_PASSWORD }}
           registry: quay.io
 
-      - name: Push the image to quay.io
-        if: github.event_name == 'schedule' || github.event_name == 'push'
-        uses: redhat-actions/push-to-registry@v3
-        id: push
-        with:
-          registry: quay.io/openstack-lightspeed
-          image: ${{ steps.build_image.outputs.image }}
-          tags: ${{ steps.build_image.outputs.tags }}
-          username: ${{ secrets.QUAY_IO_LOGIN }}
-          password: ${{ secrets.QUAY_IO_PASSWORD }}
-
-      - name: Get sha256 digest
-        if: github.event_name == 'schedule' || github.event_name == 'push'
-        run: |
-          DIGEST=$(skopeo inspect docker://${{ env.IMAGE_NAME }}:${{ github.sha }} | jq -r '.Digest')
-          echo "IMAGE_DIGEST=$DIGEST" >> $GITHUB_ENV
-
-      - name: Sign image
-        if: github.event_name == 'schedule' || github.event_name == 'push'
-        run: |
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE_NAME }}@${{ env.IMAGE_DIGEST }}
+      - name: Sign pushed image tags
         env:
+          IMAGE_NAME: quay.io/openstack-lightspeed/${{ github.event.repository.name }}
+          TAGS: ${{ needs.prepare-build-config.outputs.tags }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          for tag in ${TAGS}; do
+            DIGEST=$(skopeo inspect docker://${IMAGE_NAME}:${tag} | jq -r '.Digest')
+            cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${IMAGE_NAME}@${DIGEST}
+          done
