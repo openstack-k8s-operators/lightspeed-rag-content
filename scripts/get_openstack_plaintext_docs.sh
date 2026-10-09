@@ -48,7 +48,7 @@ OS_API_DOCS=${OS_API_DOCS:-false}
 _OS_PROJECTS="nova horizon keystone neutron neutron-lib cinder manila glance \
 swift ceilometer octavia designate heat placement ironic barbican aodh \
 watcher adjutant blazar cyborg magnum mistral skyline-apiserver \
-skyline-console storlets vitrage zun python-openstackclient tempest \
+skyline-console storlets zun python-openstackclient tempest \
 trove zaqar masakari"
 OS_PROJECTS=${OS_PROJECTS:-$_OS_PROJECTS}
 
@@ -296,7 +296,7 @@ deps =
     fi
 
     # These projects have all their docs under "latest" instead of "2025.2"
-    if  [ "${project}" == "adjutant" ] || [ "${project}" == "cyborg" ] || [ "${project}" == "tempest" ] || [ "${project}" == "vitrage" ]; then
+    if  [ "${project}" == "adjutant" ] || [ "${project}" == "cyborg" ] || [ "${project}" == "tempest" ]; then
         _output_version="latest"
     else
         _output_version="${_os_version}"
@@ -334,8 +334,8 @@ for os_project in "${os_projects[@]}"; do
 
     echo "Generating documentation for ${os_project}. [logs -> ${WORKING_DIR}/${os_project_log_file}]"
     _os_version=$OS_VERSION
-    # tempest and vitrage are branchless
-    if [ "${os_project}" == "tempest" ] || [ "${os_project}" == "vitrage" ]; then
+    # tempest are branchless
+    if [ "${os_project}" == "tempest" ]; then
         _os_version="master"
     fi
     generate_text_doc "$os_project" "$_os_version" > "${os_project_log_file}" 2>&1 &
