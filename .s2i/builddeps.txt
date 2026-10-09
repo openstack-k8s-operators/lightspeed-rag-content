@@ -6,7 +6,9 @@ glibc-langpack-en
 glibc-locale-source
 
 # Needed by upstream OpenStack docs generation
+gcc
 graphviz
+openldap-devel
 python-devel
 pcre-devel
 
