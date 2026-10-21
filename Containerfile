@@ -121,9 +121,23 @@ RUN rm -rf /rag/embeddings_model/.cache /rag/okp_embeddings_model/.cache && \
 
 ARG INDEX_NAME
 ENV INDEX_NAME=${INDEX_NAME}
+ARG GIT_REVISION
+ARG STREAM
 
 RUN mkdir /licenses
 COPY LICENSE /licenses/
 
-LABEL description="Red Hat OpenStack Lightspeed RAG content"
+LABEL com.redhat.component="openstack-lightspeed-rag-content" \
+      name="openstack-k8s-operators/lightspeed-rag-content" \
+      summary="OpenStack Lightspeed RAG content" \
+      io.k8s.name="openstack-lightspeed-rag-content" \
+      io.k8s.description="Vector database and embedding models for OpenStack Lightspeed retrieval-augmented generation." \
+      io.openshift.tags="openstack,lightspeed,rag" \
+      org.label-schema.vcs-url="https://github.com/openstack-k8s-operators/lightspeed-rag-content" \
+      s2i.openstack.org/stream=${STREAM} \
+      org.opencontainers.image.revision=${GIT_REVISION} \
+      org.opencontainers.image.title="OpenStack Lightspeed RAG Content" \
+      org.opencontainers.image.description="Vector database and embedding models for OpenStack Lightspeed retrieval-augmented generation." \
+      org.opencontainers.image.source="https://github.com/openstack-k8s-operators/lightspeed-rag-content"
+
 USER 65532:65532

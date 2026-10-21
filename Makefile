@@ -13,6 +13,8 @@ BUILD_EXTRA_ARGS               ?=
 VECTOR_DB_TYPE                 ?= faiss
 RHOSO_IGNORE_LIST              ?= ""
 BUILD_OPERATORS_DOCS           ?= true
+GIT_REVISION                   ?= $(shell git rev-parse HEAD)
+STREAM                         ?= $(shell git branch --show-current)
 
 # Define behavior based on the flavor
 ifeq ($(FLAVOR),cpu)
@@ -40,6 +42,8 @@ build-image-os: ## Build a openstack rag-content container image
 	--build-arg RHOSO_IGNORE_LIST='$(RHOSO_IGNORE_LIST)' \
 	--build-arg RHOSO_DOCS_EXTRA_DOCS=$(RHOSO_DOCS_EXTRA_DOCS) \
 	--build-arg BUILD_OPERATORS_DOCS=$(BUILD_OPERATORS_DOCS) \
+	--build-arg GIT_REVISION=$(GIT_REVISION) \
+	--build-arg STREAM=$(STREAM) \
 	$(BUILD_GPU_ARGS) .
 
 get-embeddings-model: ## Download embeddings model from the openstack-lightspeed/rag-content container image
