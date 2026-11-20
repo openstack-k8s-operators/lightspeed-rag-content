@@ -60,7 +60,7 @@ jobs:
 
   build-and-push-rag-content:
     needs: prepare-build-config
-    uses: openstack-k8s-operators/lightspeed-mcps/.github/workflows/build-and-push-mcps.yaml@main
+    uses: openstack-k8s-operators/lightspeed-mcps/.github/workflows/build-and-push-s2i.yaml@main
     with:
       image_name: rag-content
       image_namespace: openstack-lightspeed
